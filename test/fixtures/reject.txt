@@ -1,0 +1,19 @@
+> 220
+< HELO client.example.com
+> 250
+< MAIL FROM: <from@example.com>
+> 250
+< RCPT TO: <reject@example.com>
+> 250
+< DATA
+> 250
+< From: from@example.com
+< To: reject@example.com
+< Subject: Test Subject
+< 
+< This is a test message.
+< .
+# Manually reject the email from the listener.
+> 550
+< QUIT
+> 221

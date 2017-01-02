@@ -1,0 +1,9 @@
+> 220
+< HELO client.example.com
+> 250
+< MAIL FROM: <from@example.com>
+> 250
+< RCPT TO: <no_account@example.com>
+> 550
+< QUIT
+> 221

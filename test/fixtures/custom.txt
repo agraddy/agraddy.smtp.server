@@ -1,0 +1,19 @@
+> 220
+< HELO client.example.com
+> 250
+< MAIL FROM: <from@example.com>
+> 250
+< RCPT TO: <custom@example.com>
+> 250
+< DATA
+> 250
+< From: from@example.com
+< To: custom@example.com
+< Subject: Test Subject
+< 
+< This is a test message.
+< .
+# Send a custom message from the listener.
+> 523
+< QUIT
+> 221
