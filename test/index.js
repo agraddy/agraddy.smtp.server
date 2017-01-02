@@ -2,6 +2,7 @@ var tap = require('agraddy.test.tap')(__filename);
 var events = require('events');
 var net = require('net');
 var path = require('path');
+var stream = require('stream');
 
 var emitter = new events.EventEmitter();
 
@@ -10,6 +11,7 @@ process.chdir('test');
 var smtp = require('../');
 
 var port;
+var writable;
 
 var server = smtp.createServer(function(req, res) {
 	if(req.to == 'basic@example.com') {
@@ -17,19 +19,29 @@ var server = smtp.createServer(function(req, res) {
 		tap.assert(true, 'Message received.');
 
 		res.accept();
-	}
-	if(req.to == 'reject@example.com') {
+	} else if(req.to == 'reject@example.com') {
 		tap.assert(true, 'Message received.');
 
 		res.reject();
-	}
-	if(req.to == 'custom@example.com') {
+	} else if(req.to == 'custom@example.com') {
 		tap.assert(true, 'Message received.');
 
 		res.write('523 Too large');
-	}
-	if(req.to == 'exists@example.net') {
+	} else if(req.to == 'exists@example.net') {
 		tap.assert(true, 'Message received.');
+
+		res.accept();
+	} else if(req.to == 'stream@example.com') {
+		writable = new stream.Writable();
+		writable._content = '';
+		writable._write = function(chunk, encoding, cb) {
+			writable._content += chunk.toString();
+			cb();
+		};
+
+		req.pipe(writable).on('finish', function() {
+			tap.assert.equal(writable._content, 'From: from@example.com\r\nTo: stream@example.com\r\nSubject: Test Subject\r\n\r\nThis is a test message.\r\n', 'The req should be a readable stream of the entire email with headers.');
+		});
 
 		res.accept();
 	}
@@ -76,7 +88,11 @@ function custom() {
 }
 
 function regex() {
-	runCommands(port, 'regex.txt', end);
+	runCommands(port, 'regex.txt', streamWorking);
+}
+
+function streamWorking() {
+	runCommands(port, 'stream.txt', end);
 }
 
 function end() {
@@ -134,7 +150,7 @@ function runCommands(port, file, cb) {
 		var client = net.createConnection(port);
 
 		client.on('data', function(data) {
-			console.log('CLIENT RECEIVED: ' + data.toString());
+			//console.log('CLIENT RECEIVED: ' + data.toString());
 			commands.emit('data', data.toString());
 			if(index < commands.list.length) {
 				client.write(commands.list[index]);
