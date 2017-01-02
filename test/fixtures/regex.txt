@@ -1,0 +1,19 @@
+> 220
+< HELO client.example.com
+> 250
+< MAIL FROM: <from@example.com>
+> 250
+< RCPT TO: <exists@example.net>
+# Don't reject if is passes the regex
+> 250
+< DATA
+> 250
+< From: from@example.com
+< To: exists@example.net
+< Subject: Test Subject
+< 
+< This is a test message.
+< .
+> 250
+< QUIT
+> 221

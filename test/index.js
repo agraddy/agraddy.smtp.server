@@ -28,6 +28,11 @@ var server = smtp.createServer(function(req, res) {
 
 		res.write('523 Too large');
 	}
+	if(req.to == 'exists@example.net') {
+		tap.assert(true, 'Message received.');
+
+		res.accept();
+	}
 });
 
 server.on('listening', function() {
@@ -61,13 +66,17 @@ function manualRejection() {
 }
 
 function custom() {
-	var emitter = runCommands(port, 'custom.txt', end);
+	var emitter = runCommands(port, 'custom.txt', regex);
 
 	emitter.on('data', function(data) {
 		if(data.indexOf('523') !== -1) {
 			tap.assert(true, 'Make sure the custom error is sent from res.write().');
 		}
 	});
+}
+
+function regex() {
+	runCommands(port, 'regex.txt', end);
 }
 
 function end() {
