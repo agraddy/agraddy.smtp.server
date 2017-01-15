@@ -44,6 +44,19 @@ var server = smtp.createServer(function(req, res) {
 		});
 
 		res.accept();
+	} else if(req.to == 'slow-stream@example.com') {
+		writable = new stream.Writable();
+		writable._content = '';
+		writable._write = function(chunk, encoding, cb) {
+			writable._content += chunk.toString();
+			cb();
+		};
+
+		req.pipe(writable).on('finish', function() {
+			tap.assert.equal(writable._content, 'From: from@example.com\r\nTo: slow-stream@example.com\r\nSubject: Test Subject\r\n\r\nThis is a test message. WITH SLOW DATA.\r\n', 'The req should be a readable stream of the entire email with headers.');
+		});
+
+		res.accept();
 	}
 });
 
@@ -92,7 +105,59 @@ function regex() {
 }
 
 function streamWorking() {
-	runCommands(port, 'stream.txt', end);
+	runCommands(port, 'stream.txt', slowData);
+}
+
+function slowData() {
+	var index = 0;
+	var commands = {};
+	commands.list = [];
+	commands.cont = [];
+	commands.list.push('HELO client.example.com');
+	commands.list.push('MAIL FROM: <from@example.com>');
+	commands.list.push('RCPT TO: <slow-stream@example.com>');
+	commands.list.push('DATA');
+	commands.list.push('From: from@example.com');
+	commands.list.push('To: slow-stream@example.com');
+	commands.list.push('Subject: Test Subject');
+	commands.list.push('');
+	commands.list.push('This is a test message. ');
+	commands.list.push('WITH SLOW DATA.');
+	commands.list.push('.');
+	commands.list.push('QUIT');
+
+	commands.cont.push(5);
+	commands.cont.push(6);
+	commands.cont.push(7);
+
+	var client = net.createConnection(port);
+
+	client.on('data', function(data) {
+		//console.log('CLIENT RECEIVED: ' + data.toString());
+		if(index < commands.list.length) {
+			client.write(commands.list[index] + '\r\n');
+		}
+		index++;
+
+		while(commands.cont.indexOf(index) !== -1) {
+			client.write(commands.list[index] + '\r\n');
+			index++;
+		}
+		if(index > 7 && index < 10) {
+			client.write(commands.list[index]);
+			index++;
+			setTimeout(function() {
+				client.write(commands.list[index] + '\r\n');
+				index++;
+				client.write(commands.list[index] + '\r\n');
+				index++;
+			}, 100);
+		}
+	});
+
+	client.on('end', function(data) {
+		end();
+	});
 }
 
 function end() {
